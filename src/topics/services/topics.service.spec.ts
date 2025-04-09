@@ -185,4 +185,30 @@ describe('TopicsService', () => {
       ]);
     });
   });
+
+  describe('findOne', () => {
+    it('should return a topic', async () => {
+      const result = await service.findOne('1');
+      expect(result).toEqual({
+        id: mockTopic.id,
+        name: mockTopicVersion.name,
+        version: mockTopicVersion.version,
+        content: mockTopicVersion.content,
+        parentId: null,
+        resources: [mockResource],
+      });
+    });
+
+    it('should throw NotFoundException when topic not found', async () => {
+      jest.spyOn(topicRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.findOne('999')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when version not found', async () => {
+      jest.spyOn(topicVersionRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.findOne('1', 999)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });

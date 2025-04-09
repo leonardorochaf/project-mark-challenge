@@ -1,10 +1,20 @@
-import { Controller, Post, Body, UseGuards, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Param,
+  Query,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   OmitType,
+  ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { TopicsService } from '../services/topics.service';
 import { CreateTopicDto } from '../dtos/create-topic.dto';
@@ -45,5 +55,27 @@ export class TopicsController {
   })
   async findAll(): Promise<TopicResponseDto[]> {
     return this.topicsService.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific topic' })
+  @ApiParam({ name: 'id', description: 'Topic ID' })
+  @ApiQuery({
+    name: 'version',
+    required: false,
+    description: 'Specific version of the topic',
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The topic has been found.',
+    type: TopicResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Topic not found.' })
+  async findOne(
+    @Param('id') id: string,
+    @Query('version') version?: number,
+  ): Promise<TopicResponseDto> {
+    return this.topicsService.findOne(id, version);
   }
 }

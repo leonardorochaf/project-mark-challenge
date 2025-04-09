@@ -83,4 +83,39 @@ export class TopicsService {
       }),
     );
   }
+
+  async findOne(id: string, version?: number) {
+    const topic = await this.topicRepository.findOne({ where: { id } });
+
+    if (!topic) {
+      throw new NotFoundException(`Topic with ID ${id} not found`);
+    }
+
+    const topicVersion = version
+      ? await this.topicVersionRepository.findOne({
+          where: { topicId: id, version },
+        })
+      : await this.topicVersionRepository.findOne({
+          where: { topicId: id, isLatest: true },
+        });
+
+    if (!topicVersion) {
+      throw new NotFoundException(
+        `Topic version ${version ?? 'latest'} not found`,
+      );
+    }
+
+    const resources = await this.resourceRepository.find({
+      where: { topicId: topic.id },
+    });
+
+    return {
+      id: topic.id,
+      name: topicVersion.name,
+      version: topicVersion.version,
+      content: topicVersion.content,
+      parentId: topic.parentId,
+      resources,
+    };
+  }
 }
