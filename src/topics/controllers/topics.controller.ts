@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -34,5 +34,16 @@ export class TopicsController {
     @Body() createTopicDto: CreateTopicDto,
   ): Promise<Omit<TopicResponseDto, 'resources'>> {
     return this.topicsService.create(createTopicDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all root topics' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all root topics.',
+    type: [TopicResponseDto],
+  })
+  async findAll(): Promise<TopicResponseDto[]> {
+    return this.topicsService.findAll();
   }
 }

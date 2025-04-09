@@ -2,20 +2,28 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { TopicsService } from './topics.service';
 import { Topic } from '../entities/topic.entity';
 import { TopicVersion } from '../entities/topic-version.entity';
 import { CreateTopicDto } from '../dtos/create-topic.dto';
+import { Resource, ResourceType } from '../entities/resource.entity';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => () => {},
   initializeTransactionalContext: () => {},
 }));
 
+jest.mock('uuid', () => ({
+  v4: jest.fn(),
+}));
+
 describe('TopicsService', () => {
   let service: TopicsService;
   let topicRepository: Repository<Topic>;
   let topicVersionRepository: Repository<TopicVersion>;
+
+  const mockUuid = '123e4567-e89b-12d3-a456-426614174000';
 
   const mockTopic = {
     id: '1',
@@ -39,7 +47,17 @@ describe('TopicsService', () => {
     topic: mockTopic,
   };
 
+  const mockResource = {
+    id: mockUuid,
+    url: 'https://example.com',
+    description: 'Test Resource',
+    type: ResourceType.ARTICLE,
+    topic: mockTopic,
+  };
+
   beforeEach(async () => {
+    (uuidv4 as jest.Mock).mockReturnValue(mockUuid);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TopicsService,
@@ -58,6 +76,25 @@ describe('TopicsService', () => {
                 return { ...mockTopic, id: '999', parentId: null };
               return null;
             }),
+            find: jest.fn().mockImplementation(async (options: any) => {
+              if (!options)
+                return [
+                  mockTopic,
+                  { ...mockTopic, id: '2', parentId: '1' },
+                  { ...mockTopic, id: '3', parentId: '2' },
+                  { ...mockTopic, id: '4', parentId: '2' },
+                ];
+              const parentId = options.where?.parentId;
+              if (parentId === null) return [mockTopic];
+              if (parentId === '1')
+                return [{ ...mockTopic, id: '2', parentId: '1' }];
+              if (parentId === '2')
+                return [
+                  { ...mockTopic, id: '3', parentId: '2' },
+                  { ...mockTopic, id: '4', parentId: '2' },
+                ];
+              return [];
+            }),
           },
         },
         {
@@ -65,6 +102,25 @@ describe('TopicsService', () => {
           useValue: {
             create: jest.fn().mockReturnValue(mockTopicVersion),
             save: jest.fn().mockResolvedValue(mockTopicVersion),
+            findOne: jest.fn().mockImplementation(async (options: any) => {
+              const topicId = options.where?.topicId;
+              if (topicId === '1') return mockTopicVersion;
+              if (topicId === '2')
+                return { ...mockTopicVersion, id: '2', topicId: '2' };
+              if (topicId === '3')
+                return { ...mockTopicVersion, id: '3', topicId: '3' };
+              if (topicId === '4')
+                return { ...mockTopicVersion, id: '4', topicId: '4' };
+              if (topicId === '999')
+                return { ...mockTopicVersion, id: '999', topicId: '999' };
+              return null;
+            }),
+          },
+        },
+        {
+          provide: getRepositoryToken(Resource),
+          useValue: {
+            find: jest.fn().mockResolvedValue([mockResource]),
           },
         },
       ],
@@ -111,6 +167,22 @@ describe('TopicsService', () => {
       await expect(service.create(dtoWithParent)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return an array of topics', async () => {
+      const result = await service.findAll();
+      expect(result).toEqual([
+        {
+          id: mockTopic.id,
+          name: mockTopicVersion.name,
+          version: mockTopicVersion.version,
+          content: mockTopicVersion.content,
+          parentId: null,
+          resources: [mockResource],
+        },
+      ]);
     });
   });
 });

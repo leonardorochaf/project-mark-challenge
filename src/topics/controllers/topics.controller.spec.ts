@@ -20,6 +20,7 @@ describe('TopicsController', () => {
 
   const mockTopicsService = {
     create: jest.fn(),
+    findAll: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -58,6 +59,17 @@ describe('TopicsController', () => {
 
       expect(result).toEqual({ ...mockTopic, ...createTopicDto });
       expect(topicsService.create).toHaveBeenCalledWith(createTopicDto);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return an array of topics', async () => {
+      mockTopicsService.findAll.mockResolvedValue([mockTopic]);
+
+      const result = await controller.findAll();
+
+      expect(result).toEqual([mockTopic]);
+      expect(topicsService.findAll).toHaveBeenCalled();
     });
   });
 });
