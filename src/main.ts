@@ -6,11 +6,16 @@ import {
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   initializeTransactionalContext({ storageDriver: StorageDriver.AUTO });
 
-  const app = await NestFactory.create(AppModule, { abortOnError: true });
+  const app = await NestFactory.create(AppModule, {
+    abortOnError: true,
+    bufferLogs: true,
+  });
+  app.useLogger(app.get(Logger));
 
   app.enableCors();
   app.setGlobalPrefix('api');
