@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Delete,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -37,5 +46,23 @@ export class ResourcesController {
     @Body() createResourceDto: CreateResourceDto,
   ): Promise<ResourceResponseDto> {
     return this.resourcesService.create(topicId, createResourceDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete a resource' })
+  @ApiParam({ name: 'topicId', description: 'Topic ID' })
+  @ApiParam({ name: 'id', description: 'Resource ID' })
+  @ApiResponse({
+    status: 204,
+    description: 'The resource has been successfully deleted.',
+  })
+  @ApiResponse({ status: 404, description: 'Resource not found.' })
+  async remove(
+    @Param('topicId') topicId: string,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.resourcesService.remove(topicId, id);
   }
 }

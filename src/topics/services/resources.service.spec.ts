@@ -85,4 +85,18 @@ describe('ResourcesService', () => {
       );
     });
   });
+
+  describe('remove', () => {
+    it('should remove a resource', async () => {
+      await service.remove('1', mockUuid);
+      expect(resourceRepository.remove).toHaveBeenCalledWith(mockResource);
+    });
+
+    it('should throw NotFoundException when resource not found', async () => {
+      jest.spyOn(resourceRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.remove('1', '999')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });

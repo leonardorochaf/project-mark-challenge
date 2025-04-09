@@ -75,4 +75,24 @@ describe('ResourcesController', () => {
       );
     });
   });
+
+  describe('remove', () => {
+    it('should remove a resource', async () => {
+      mockResourcesService.remove.mockResolvedValue(undefined);
+
+      await controller.remove('1', '1');
+
+      expect(resourcesService.remove).toHaveBeenCalledWith('1', '1');
+    });
+
+    it('should throw NotFoundException when resource is not found', async () => {
+      mockResourcesService.remove.mockRejectedValue(
+        new NotFoundException('Resource not found'),
+      );
+
+      await expect(controller.remove('1', '999')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });

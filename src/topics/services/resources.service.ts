@@ -32,4 +32,19 @@ export class ResourcesService {
 
     return this.resourceRepository.save(resource);
   }
+
+  async remove(topicId: string, id: string) {
+    const resource = await this.resourceRepository.findOne({
+      where: { id, topic: { id: topicId } },
+      relations: ['topic'],
+    });
+
+    if (!resource) {
+      throw new NotFoundException(
+        `Resource with ID ${id} not found for topic ${topicId}`,
+      );
+    }
+
+    await this.resourceRepository.remove(resource);
+  }
 }
