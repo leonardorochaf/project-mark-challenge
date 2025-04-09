@@ -1,8 +1,10 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { RegisterResponseDto } from '../dtos/register-response.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { LoginDto } from '../dtos/login.dto';
+import { LoginResponseDto } from '../dtos/login-response.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -28,5 +30,19 @@ export class AuthController {
       createUserDto.password,
       createUserDto.role,
     );
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'User login' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User successfully logged in.',
+    type: LoginResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Invalid credentials.' })
+  async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
+    return this.authService.login(loginDto.email, loginDto.password);
   }
 }

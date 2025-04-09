@@ -5,10 +5,12 @@ import { User, UserRole } from '../../users/entities/user.entity';
 import { UnauthorizedException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { JwtService } from '@nestjs/jwt';
 
 describe('AuthService', () => {
   let service: AuthService;
   let userRepository: Repository<User>;
+  let jwtService: JwtService;
 
   const mockUser = {
     id: '1',
@@ -17,6 +19,10 @@ describe('AuthService', () => {
     password: 'hashedPassword123',
     role: UserRole.VIEWER,
     createdAt: new Date(),
+  };
+
+  const mockJwtService = {
+    sign: jest.fn().mockReturnValue('mock.jwt.token'),
   };
 
   beforeEach(async () => {
@@ -31,11 +37,16 @@ describe('AuthService', () => {
             save: jest.fn(),
           },
         },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    jwtService = module.get<JwtService>(JwtService);
   });
 
   it('should be defined', () => {
@@ -120,6 +131,45 @@ describe('AuthService', () => {
       );
 
       expect(result.role).toBe(UserRole.VIEWER);
+    });
+  });
+
+  describe('login', () => {
+    it('should successfully login a user with valid credentials', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
+      jest
+        .spyOn(bcrypt, 'compare')
+        .mockImplementation(() => Promise.resolve(true));
+
+      const result = await service.login('test@example.com', 'password123');
+
+      expect(result).toEqual({
+        access_token: 'mock.jwt.token',
+      });
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        email: mockUser.email,
+        id: mockUser.id,
+        role: mockUser.role,
+      });
+    });
+
+    it('should throw UnauthorizedException when user is not found', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.login('nonexistent@example.com', 'password123'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException when password is invalid', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
+      jest
+        .spyOn(bcrypt, 'compare')
+        .mockImplementation(() => Promise.resolve(false));
+
+      await expect(
+        service.login('test@example.com', 'wrongpassword'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 });

@@ -94,4 +94,43 @@ describe('AuthController', () => {
       );
     });
   });
+
+  describe('login', () => {
+    const loginDto = {
+      email: 'test@example.com',
+      password: 'password123',
+    };
+
+    const mockLoginResponse = {
+      access_token: 'mock.jwt.token',
+      user: {
+        id: '1',
+        name: 'Test User',
+        email: 'test@example.com',
+        role: UserRole.VIEWER,
+      },
+    };
+
+    it('should successfully login a user', async () => {
+      mockAuthService.login.mockResolvedValue(mockLoginResponse);
+
+      const result = await controller.login(loginDto);
+
+      expect(result).toEqual(mockLoginResponse);
+      expect(authService.login).toHaveBeenCalledWith(
+        loginDto.email,
+        loginDto.password,
+      );
+    });
+
+    it('should throw UnauthorizedException when credentials are invalid', async () => {
+      mockAuthService.login.mockRejectedValue(
+        new UnauthorizedException('Invalid credentials'),
+      );
+
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
 });
