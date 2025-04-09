@@ -5,6 +5,7 @@ import { addTransactionalDataSource } from 'typeorm-transactional';
 import { DataSource } from 'typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { TopicsModule } from './topics/topics.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { UsersModule } from './users/users.module';
     }),
     AuthModule,
     UsersModule,
+    TopicsModule,
   ],
   controllers: [],
   providers: [],
