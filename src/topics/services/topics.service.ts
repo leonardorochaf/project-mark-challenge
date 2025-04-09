@@ -164,4 +164,16 @@ export class TopicsService {
       resources,
     };
   }
+
+  async remove(id: string) {
+    const topic = await this.topicRepository.findOne({
+      where: { id },
+    });
+
+    if (!topic) {
+      throw new NotFoundException(`Topic with ID ${id} not found`);
+    }
+
+    await this.topicRepository.remove(topic);
+  }
 }

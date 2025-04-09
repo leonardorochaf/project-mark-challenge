@@ -7,6 +7,9 @@ import {
   Param,
   Query,
   Patch,
+  Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -96,5 +99,19 @@ export class TopicsController {
     @Body() updateTopicDto: UpdateTopicDto,
   ): Promise<TopicResponseDto> {
     return this.topicsService.update(id, updateTopicDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete a topic' })
+  @ApiParam({ name: 'id', description: 'Topic ID' })
+  @ApiResponse({
+    status: 204,
+    description: 'The topic has been successfully deleted.',
+  })
+  @ApiResponse({ status: 404, description: 'Topic not found.' })
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.topicsService.remove(id);
   }
 }

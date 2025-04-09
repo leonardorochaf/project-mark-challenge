@@ -25,6 +25,7 @@ describe('TopicsController', () => {
     findAll: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
+    remove: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -129,6 +130,22 @@ describe('TopicsController', () => {
       await expect(controller.update('999', updateTopicDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('remove', () => {
+    it('should remove a topic', async () => {
+      mockTopicsService.remove.mockResolvedValue(undefined);
+
+      await controller.remove('1');
+
+      expect(topicsService.remove).toHaveBeenCalledWith('1');
+    });
+
+    it('should throw NotFoundException when topic to remove is not found', async () => {
+      mockTopicsService.remove.mockRejectedValue(new NotFoundException());
+
+      await expect(controller.remove('999')).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -96,6 +96,7 @@ describe('TopicsService', () => {
                 ];
               return [];
             }),
+            remove: jest.fn(),
           },
         },
         {
@@ -252,6 +253,18 @@ describe('TopicsService', () => {
       await expect(service.update('1', updateTopicDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('remove', () => {
+    it('should remove a topic', async () => {
+      await service.remove('1');
+      expect(topicRepository.remove).toHaveBeenCalledWith(mockTopic);
+    });
+
+    it('should throw NotFoundException when topic not found', async () => {
+      jest.spyOn(topicRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.remove('999')).rejects.toThrow(NotFoundException);
     });
   });
 });
