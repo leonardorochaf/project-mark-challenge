@@ -6,6 +6,7 @@ import { Topic } from '../entities/topic.entity';
 import { TopicVersion } from '../entities/topic-version.entity';
 import { CreateTopicDto } from '../dtos/create-topic.dto';
 import { Resource } from '../entities/resource.entity';
+import { UpdateTopicDto } from '../dtos/update-topic.dto';
 
 @Injectable()
 export class TopicsService {
@@ -114,6 +115,51 @@ export class TopicsService {
       name: topicVersion.name,
       version: topicVersion.version,
       content: topicVersion.content,
+      parentId: topic.parentId,
+      resources,
+    };
+  }
+
+  @Transactional()
+  async update(id: string, updateTopicDto: UpdateTopicDto) {
+    const topic = await this.topicRepository.findOne({ where: { id } });
+
+    if (!topic) {
+      throw new NotFoundException(`Topic with ID ${id} not found`);
+    }
+
+    const currentLatestVersion = await this.topicVersionRepository.findOne({
+      where: { topicId: id, isLatest: true },
+    });
+
+    if (!currentLatestVersion) {
+      throw new NotFoundException(`Latest version for topic ${id} not found`);
+    }
+
+    const newVersion = this.topicVersionRepository.create({
+      name: updateTopicDto.name ?? currentLatestVersion.name,
+      content: updateTopicDto.content ?? currentLatestVersion.content,
+      version: currentLatestVersion.version + 1,
+      isLatest: true,
+      topicId: id,
+    });
+
+    const [savedVersion, resources] = await Promise.all([
+      this.topicVersionRepository.save(newVersion),
+      this.resourceRepository.find({
+        where: { topicId: topic.id },
+      }),
+      this.topicVersionRepository.update(
+        { id: currentLatestVersion.id },
+        { isLatest: false },
+      ),
+    ]);
+
+    return {
+      id: topic.id,
+      name: savedVersion.name,
+      version: savedVersion.version,
+      content: savedVersion.content,
       parentId: topic.parentId,
       resources,
     };

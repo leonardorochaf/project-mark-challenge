@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { TopicsController } from './topics.controller';
 import { TopicsService } from '../services/topics.service';
 import { CreateTopicDto } from '../dtos/create-topic.dto';
+import { UpdateTopicDto } from '../dtos/update-topic.dto';
 
 describe('TopicsController', () => {
   let controller: TopicsController;
@@ -23,6 +24,7 @@ describe('TopicsController', () => {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
+    update: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -98,6 +100,33 @@ describe('TopicsController', () => {
       mockTopicsService.findOne.mockRejectedValue(new NotFoundException());
 
       await expect(controller.findOne('999')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('update', () => {
+    const updateTopicDto: UpdateTopicDto = {
+      name: 'Updated Topic',
+      content: 'Updated Content',
+    };
+
+    it('should update a topic', async () => {
+      mockTopicsService.update.mockResolvedValue({
+        ...mockTopic,
+        ...updateTopicDto,
+      });
+
+      const result = await controller.update('1', updateTopicDto);
+
+      expect(result).toEqual({ ...mockTopic, ...updateTopicDto });
+      expect(topicsService.update).toHaveBeenCalledWith('1', updateTopicDto);
+    });
+
+    it('should throw NotFoundException when topic to update is not found', async () => {
+      mockTopicsService.update.mockRejectedValue(new NotFoundException());
+
+      await expect(controller.update('999', updateTopicDto)).rejects.toThrow(
         NotFoundException,
       );
     });

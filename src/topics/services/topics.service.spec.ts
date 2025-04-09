@@ -8,6 +8,7 @@ import { Topic } from '../entities/topic.entity';
 import { TopicVersion } from '../entities/topic-version.entity';
 import { CreateTopicDto } from '../dtos/create-topic.dto';
 import { Resource, ResourceType } from '../entities/resource.entity';
+import { UpdateTopicDto } from '../dtos/update-topic.dto';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => () => {},
@@ -115,6 +116,7 @@ describe('TopicsService', () => {
                 return { ...mockTopicVersion, id: '999', topicId: '999' };
               return null;
             }),
+            update: jest.fn(),
           },
         },
         {
@@ -207,6 +209,47 @@ describe('TopicsService', () => {
     it('should throw NotFoundException when version not found', async () => {
       jest.spyOn(topicVersionRepository, 'findOne').mockResolvedValueOnce(null);
       await expect(service.findOne('1', 999)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('update', () => {
+    const updateTopicDto: UpdateTopicDto = {
+      name: 'Updated Topic',
+      content: 'Updated Content',
+    };
+
+    it('should update a topic', async () => {
+      const updatedVersion = {
+        ...mockTopicVersion,
+        name: updateTopicDto.name,
+        content: updateTopicDto.content,
+        version: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        topic: mockTopic,
+      };
+      jest
+        .spyOn(topicVersionRepository, 'save')
+        .mockResolvedValueOnce(updatedVersion);
+
+      const result = await service.update('1', updateTopicDto);
+      expect(result.name).toBe(updateTopicDto.name);
+      expect(result.content).toBe(updateTopicDto.content);
+      expect(result.version).toBe(2);
+    });
+
+    it('should throw NotFoundException when topic not found', async () => {
+      jest.spyOn(topicRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.update('999', updateTopicDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw NotFoundException when latest version not found', async () => {
+      jest.spyOn(topicVersionRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.update('1', updateTopicDto)).rejects.toThrow(
         NotFoundException,
       );
     });

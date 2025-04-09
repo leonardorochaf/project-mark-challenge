@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   Query,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,6 +24,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
 import { TopicResponseDto } from '../dtos/topic-response.dto';
+import { UpdateTopicDto } from '../dtos/update-topic.dto';
 
 @ApiTags('topics')
 @ApiBearerAuth()
@@ -77,5 +79,22 @@ export class TopicsController {
     @Query('version') version?: number,
   ): Promise<TopicResponseDto> {
     return this.topicsService.findOne(id, version);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({ summary: 'Update a topic' })
+  @ApiParam({ name: 'id', description: 'Topic ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'The topic has been successfully updated.',
+    type: TopicResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Topic not found.' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateTopicDto: UpdateTopicDto,
+  ): Promise<TopicResponseDto> {
+    return this.topicsService.update(id, updateTopicDto);
   }
 }
