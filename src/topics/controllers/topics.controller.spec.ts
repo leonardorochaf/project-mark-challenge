@@ -26,6 +26,25 @@ describe('TopicsController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    getTopicTree: jest.fn(),
+  };
+
+  const mockTopicTree = {
+    id: '1',
+    name: 'Root Topic',
+    content: 'Root Content',
+    version: 1,
+    resources: [],
+    children: [
+      {
+        id: '2',
+        name: 'Child Topic',
+        content: 'Child Content',
+        version: 1,
+        resources: [],
+        children: [],
+      },
+    ],
   };
 
   beforeEach(async () => {
@@ -146,6 +165,37 @@ describe('TopicsController', () => {
       mockTopicsService.remove.mockRejectedValue(new NotFoundException());
 
       await expect(controller.remove('999')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getTopicTree', () => {
+    it('should return a topic tree', async () => {
+      mockTopicsService.getTopicTree.mockResolvedValue(mockTopicTree);
+
+      const result = await controller.getTopicTree('1');
+
+      expect(result).toEqual(mockTopicTree);
+      expect(topicsService.getTopicTree).toHaveBeenCalledWith('1', undefined);
+    });
+
+    it('should return a topic tree for specific version', async () => {
+      mockTopicsService.getTopicTree.mockResolvedValue({
+        ...mockTopicTree,
+        version: 2,
+      });
+
+      const result = await controller.getTopicTree('1', 2);
+
+      expect(result).toEqual({ ...mockTopicTree, version: 2 });
+      expect(topicsService.getTopicTree).toHaveBeenCalledWith('1', 2);
+    });
+
+    it('should throw NotFoundException when root topic is not found', async () => {
+      mockTopicsService.getTopicTree.mockRejectedValue(new NotFoundException());
+
+      await expect(controller.getTopicTree('999')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

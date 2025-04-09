@@ -176,4 +176,62 @@ export class TopicsService {
 
     await this.topicRepository.remove(topic);
   }
+
+  async getTopicTree(topicId: string, version?: number) {
+    const topic = await this.topicRepository.findOne({
+      where: { id: topicId },
+    });
+
+    if (!topic) {
+      throw new NotFoundException(`Topic with ID ${topicId} not found`);
+    }
+
+    const topicVersion = version
+      ? await this.topicVersionRepository.findOne({
+          where: { topicId, version },
+        })
+      : await this.topicVersionRepository.findOne({
+          where: { topicId, isLatest: true },
+        });
+
+    const resources = await this.resourceRepository.find({
+      where: { topicId: topic.id },
+    });
+
+    const childTopics = await this.topicRepository.find({
+      where: { parentId: topic.id },
+    });
+
+    const children = await Promise.all(
+      childTopics.map(async (child) => {
+        const childVersion = await this.topicVersionRepository.findOne({
+          where: { topicId: child.id, isLatest: true },
+        });
+
+        const childResources = await this.resourceRepository.find({
+          where: { topicId: child.id },
+        });
+
+        const grandchildren = await this.getTopicTree(child.id);
+
+        return {
+          id: child.id,
+          name: childVersion.name,
+          version: childVersion.version,
+          content: childVersion.content,
+          resources: childResources,
+          children: grandchildren.children,
+        };
+      }),
+    );
+
+    return {
+      id: topic.id,
+      name: topicVersion.name,
+      version: topicVersion.version,
+      content: topicVersion.content,
+      resources,
+      children,
+    };
+  }
 }

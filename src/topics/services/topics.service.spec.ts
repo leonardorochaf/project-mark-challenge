@@ -267,4 +267,51 @@ describe('TopicsService', () => {
       await expect(service.remove('999')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('getTopicTree', () => {
+    it('should return a topic tree', async () => {
+      const result = await service.getTopicTree('1');
+      expect(result).toEqual({
+        id: mockTopic.id,
+        name: mockTopicVersion.name,
+        version: mockTopicVersion.version,
+        content: mockTopicVersion.content,
+        resources: [mockResource],
+        children: [
+          {
+            id: '2',
+            name: mockTopicVersion.name,
+            version: mockTopicVersion.version,
+            content: mockTopicVersion.content,
+            resources: [mockResource],
+            children: [
+              {
+                id: '3',
+                name: mockTopicVersion.name,
+                version: mockTopicVersion.version,
+                content: mockTopicVersion.content,
+                resources: [mockResource],
+                children: [],
+              },
+              {
+                id: '4',
+                name: mockTopicVersion.name,
+                version: mockTopicVersion.version,
+                content: mockTopicVersion.content,
+                resources: [mockResource],
+                children: [],
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('should throw NotFoundException when topic not found', async () => {
+      jest.spyOn(topicRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.getTopicTree('999')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });

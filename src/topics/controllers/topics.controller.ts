@@ -26,7 +26,10 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
-import { TopicResponseDto } from '../dtos/topic-response.dto';
+import {
+  TopicResponseDto,
+  TopicTreeResponseDto,
+} from '../dtos/topic-response.dto';
 import { UpdateTopicDto } from '../dtos/update-topic.dto';
 
 @ApiTags('topics')
@@ -113,5 +116,28 @@ export class TopicsController {
   @ApiResponse({ status: 404, description: 'Topic not found.' })
   async remove(@Param('id') id: string): Promise<void> {
     return this.topicsService.remove(id);
+  }
+
+  @Get(':id/tree')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({ summary: 'Get topic tree' })
+  @ApiParam({ name: 'id', description: 'Root topic ID' })
+  @ApiQuery({
+    name: 'version',
+    required: false,
+    description: 'Specific version of the topic',
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The topic tree has been retrieved.',
+    type: TopicTreeResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Topic not found.' })
+  async getTopicTree(
+    @Param('id') id: string,
+    @Query('version') version?: number,
+  ): Promise<TopicTreeResponseDto> {
+    return this.topicsService.getTopicTree(id, version);
   }
 }

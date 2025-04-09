@@ -38,3 +38,37 @@ export class TopicResponseDto {
   })
   resources: ResourceResponseDto[];
 }
+
+export class TopicTreeResponseDto extends TopicResponseDto {
+  @ApiProperty({
+    description: 'Child topics',
+    type: [TopicTreeResponseDto],
+  })
+  children: TopicTreeResponseDto[];
+}
+
+export class TopicPathResponseDto {
+  @ApiProperty({
+    description: 'List of topics in the path',
+    type: [TopicResponseDto],
+  })
+  path: TopicResponseDto[];
+
+  @ApiProperty({
+    description: 'Number of edges in the path',
+    example: 2,
+  })
+  distance: number;
+
+  @ApiProperty({
+    description: 'Starting topic',
+    type: TopicResponseDto,
+  })
+  startTopic: TopicResponseDto;
+
+  @ApiProperty({
+    description: 'Ending topic',
+    type: TopicResponseDto,
+  })
+  endTopic: TopicResponseDto;
+}
