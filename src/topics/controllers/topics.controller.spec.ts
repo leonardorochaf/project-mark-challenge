@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import {
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { TopicsController } from './topics.controller';
 import { TopicsService } from '../services/topics.service';
 import { CreateTopicDto } from '../dtos/create-topic.dto';
@@ -8,6 +11,16 @@ import { UpdateTopicDto } from '../dtos/update-topic.dto';
 describe('TopicsController', () => {
   let controller: TopicsController;
   let topicsService: TopicsService;
+
+  const mockTopicsService = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    getTopicTree: jest.fn(),
+    findShortestPath: jest.fn(),
+  };
 
   const mockTopic = {
     id: '1',
@@ -18,15 +31,6 @@ describe('TopicsController', () => {
     resources: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
-
-  const mockTopicsService = {
-    create: jest.fn(),
-    findAll: jest.fn(),
-    findOne: jest.fn(),
-    update: jest.fn(),
-    remove: jest.fn(),
-    getTopicTree: jest.fn(),
   };
 
   const mockTopicTree = {
@@ -45,6 +49,47 @@ describe('TopicsController', () => {
         children: [],
       },
     ],
+  };
+
+  const mockTopicPath = {
+    path: [
+      {
+        id: '1',
+        name: 'Start Topic',
+        content: 'Start Content',
+        version: 1,
+        resources: [],
+      },
+      {
+        id: '2',
+        name: 'Middle Topic',
+        content: 'Middle Content',
+        version: 1,
+        resources: [],
+      },
+      {
+        id: '3',
+        name: 'End Topic',
+        content: 'End Content',
+        version: 1,
+        resources: [],
+      },
+    ],
+    distance: 2,
+    startTopic: {
+      id: '1',
+      name: 'Start Topic',
+      content: 'Start Content',
+      version: 1,
+      resources: [],
+    },
+    endTopic: {
+      id: '3',
+      name: 'End Topic',
+      content: 'End Content',
+      version: 1,
+      resources: [],
+    },
   };
 
   beforeEach(async () => {
@@ -195,6 +240,37 @@ describe('TopicsController', () => {
 
       await expect(controller.getTopicTree('999')).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('findShortestPath', () => {
+    it('should return the shortest path between two topics', async () => {
+      mockTopicsService.findShortestPath.mockResolvedValue(mockTopicPath);
+
+      const result = await controller.findShortestPath('1', '3');
+
+      expect(result).toEqual(mockTopicPath);
+      expect(topicsService.findShortestPath).toHaveBeenCalledWith('1', '3');
+    });
+
+    it('should throw NotFoundException when one of the topics is not found', async () => {
+      mockTopicsService.findShortestPath.mockRejectedValue(
+        new NotFoundException(),
+      );
+
+      await expect(controller.findShortestPath('1', '999')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw UnprocessableEntityException when no path exists', async () => {
+      mockTopicsService.findShortestPath.mockRejectedValue(
+        new UnprocessableEntityException(),
+      );
+
+      await expect(controller.findShortestPath('1', '3')).rejects.toThrow(
+        UnprocessableEntityException,
       );
     });
   });

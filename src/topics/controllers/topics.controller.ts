@@ -27,6 +27,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
 import {
+  TopicPathResponseDto,
   TopicResponseDto,
   TopicTreeResponseDto,
 } from '../dtos/topic-response.dto';
@@ -139,5 +140,27 @@ export class TopicsController {
     @Query('version') version?: number,
   ): Promise<TopicTreeResponseDto> {
     return this.topicsService.getTopicTree(id, version);
+  }
+
+  @Get(':startId/path/:endId')
+  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @ApiOperation({ summary: 'Find shortest path between two topics' })
+  @ApiParam({ name: 'startId', description: 'Starting topic ID' })
+  @ApiParam({ name: 'endId', description: 'Ending topic ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'The shortest path has been found.',
+    type: TopicPathResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'One or both topics not found.' })
+  @ApiResponse({
+    status: 422,
+    description: 'No path exists between the specified topics.',
+  })
+  async findShortestPath(
+    @Param('startId') startId: string,
+    @Param('endId') endId: string,
+  ): Promise<TopicPathResponseDto> {
+    return this.topicsService.findShortestPath(startId, endId);
   }
 }

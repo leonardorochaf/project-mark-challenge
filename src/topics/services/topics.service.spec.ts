@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException } from '@nestjs/common';
+import {
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { TopicsService } from './topics.service';
@@ -312,6 +315,97 @@ describe('TopicsService', () => {
       await expect(service.getTopicTree('999')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('findShortestPath', () => {
+    it('should find shortest path between topics', async () => {
+      const result = await service.findShortestPath('1', '2');
+      expect(result.path).toHaveLength(2);
+      expect(result.distance).toBe(1);
+      expect(result.startTopic.id).toBe('1');
+      expect(result.endTopic.id).toBe('2');
+    });
+
+    it('should find path when start and end are the same', async () => {
+      const result = await service.findShortestPath('1', '1');
+      expect(result.path).toHaveLength(1);
+      expect(result.distance).toBe(0);
+      expect(result.startTopic.id).toBe('1');
+      expect(result.endTopic.id).toBe('1');
+    });
+
+    it('should find path through multiple topics', async () => {
+      const result = await service.findShortestPath('1', '3');
+      expect(result.path).toHaveLength(3);
+      expect(result.distance).toBe(2);
+      expect(result.startTopic.id).toBe('1');
+      expect(result.endTopic.id).toBe('3');
+      expect(result.path[1].id).toBe('2');
+    });
+
+    it('should process queue and visit neighbors in findPath', async () => {
+      const result = await service.findShortestPath('1', '4');
+      expect(result.path).toHaveLength(3);
+      expect(result.distance).toBe(2);
+      expect(result.path.map((p) => p.id)).toEqual(['1', '2', '4']);
+    });
+
+    it('should throw NotFoundException when start topic not found', async () => {
+      jest.spyOn(topicRepository, 'findOne').mockResolvedValueOnce(null);
+      await expect(service.findShortestPath('999', '2')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw UnprocessableEntityException when no path exists', async () => {
+      jest.spyOn(topicRepository, 'find').mockResolvedValue([]);
+      await expect(service.findShortestPath('1', '999')).rejects.toThrow(
+        UnprocessableEntityException,
+      );
+    });
+
+    it('should handle path details for all topics in path', async () => {
+      const result = await service.findShortestPath('1', '4');
+      expect(result.path).toHaveLength(3);
+      result.path.forEach((topic) => {
+        expect(topic).toHaveProperty('id');
+        expect(topic).toHaveProperty('name');
+        expect(topic).toHaveProperty('version');
+        expect(topic).toHaveProperty('content');
+        expect(topic).toHaveProperty('resources');
+      });
+    });
+  });
+
+  describe('buildTopicGraph', () => {
+    it('should build graph with parent-child relationships', async () => {
+      const mockTopicWithParent = { ...mockTopic, id: '2', parentId: '1' };
+      const mockTopicWithChild = { ...mockTopic, id: '3', parentId: '2' };
+
+      jest
+        .spyOn(topicRepository, 'find')
+        .mockResolvedValueOnce([
+          mockTopic,
+          mockTopicWithParent,
+          mockTopicWithChild,
+        ]);
+
+      jest
+        .spyOn(topicRepository, 'find')
+        .mockImplementation(async (options: any) => {
+          const parentId = options?.where?.parentId;
+          if (parentId === '1') return [mockTopicWithParent];
+          if (parentId === '2') return [mockTopicWithChild];
+          return [];
+        });
+
+      const graph = await (service as any).buildTopicGraph();
+
+      expect(graph.get('1')).toContain('2');
+      expect(graph.get('2')).toContain('1');
+      expect(graph.get('2')).toContain('3');
+      expect(graph.get('3')).toContain('2');
     });
   });
 });
